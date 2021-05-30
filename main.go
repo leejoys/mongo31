@@ -2,6 +2,7 @@ package mongo31
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -47,7 +48,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	fmt.Println(langs)
 }
 
 func insertPack(c *mongo.Client, docs []lang) error {
@@ -58,9 +59,9 @@ func insertPack(c *mongo.Client, docs []lang) error {
 		if err != nil {
 			return err
 		}
-		return nil
-	}
 
+	}
+	return nil
 }
 
 func languages(c *mongo.Client) ([]lang, error) {
@@ -71,14 +72,16 @@ func languages(c *mongo.Client) ([]lang, error) {
 	if err != nil {
 		return nil, err
 	}
-	var l lang
+	defer cur.Close(ctx)
+
 	var ls []lang
 	for cur.Next(ctx) {
+		var l lang
 		err = cur.Decode(&l)
 		if err != nil {
 			return nil, err
 		}
 		ls = append(ls, l)
 	}
-	return ls, nil
+	return ls, cur.Err()
 }
