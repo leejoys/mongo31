@@ -1,4 +1,4 @@
-package mongo31
+package main
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 
 const (
 	workDB         = "data"
-	workCollection = "language"
+	workCollection = "languages"
 )
 
 type lang struct {
