@@ -4,8 +4,14 @@ import (
 	"context"
 	"log"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+const (
+	workDB         = "data"
+	workCollection = "language"
 )
 
 type lang struct {
@@ -30,15 +36,13 @@ func main() {
 
 	langs := []lang{{6, "C++"}, {7, "Java"}}
 
-	coll := client.Database("data").Collection("language")
-
 	err = insertPack(client, langs)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = languages()
+	langs, err = languages(client)
 
 	if err != nil {
 		log.Fatal(err)
@@ -47,9 +51,34 @@ func main() {
 }
 
 func insertPack(c *mongo.Client, docs []lang) error {
+	coll := c.Database(workDB).Collection(workCollection)
+
+	for _, doc := range docs {
+		_, err := coll.InsertOne(context.Background(), doc)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 
 }
 
-func languages() error {
-
+func languages(c *mongo.Client) ([]lang, error) {
+	coll := c.Database(workDB).Collection(workCollection)
+	ctx := context.Background()
+	filter := bson.D{}
+	cur, err := coll.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	var l lang
+	var ls []lang
+	for cur.Next(ctx) {
+		err = cur.Decode(&l)
+		if err != nil {
+			return nil, err
+		}
+		ls = append(ls, l)
+	}
+	return ls, nil
 }
