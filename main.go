@@ -8,6 +8,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+type lang struct {
+	Id   int
+	Name string
+}
+
 func main() {
 	// подключение к СУБД MongoDB
 	mongoOpts := options.Client().ApplyURI("mongodb://0.0.0.0:27017/")
@@ -22,13 +27,29 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	type lang struct {
-		Id   int
-		Name string
-	}
 
 	langs := []lang{{6, "C++"}, {7, "Java"}}
 
 	coll := client.Database("data").Collection("language")
+
+	err = insertPack(client, langs)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = languages()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+func insertPack(c *mongo.Client, docs []lang) error {
+
+}
+
+func languages() error {
 
 }
