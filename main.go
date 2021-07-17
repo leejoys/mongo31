@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -21,12 +23,25 @@ type lang struct {
 }
 
 func main() {
-	// подключение к СУБД MongoDB
-	mongoOpts := options.Client().ApplyURI("mongodb://0.0.0.0:27017/")
-	client, err := mongo.Connect(context.Background(), mongoOpts)
+	pwd := os.Getenv("Cloud0pass")
+	connstr := fmt.Sprintf("mongodb+srv://sup:%s@cloud0.wspoq.mongodb.net/posts?retryWrites=true&w=majority", pwd)
+
+	// подключение к СУБД MongoDB в облаке
+	clientOptions := options.Client().
+		ApplyURI(connstr)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// // подключение к СУБД MongoDB
+	// mongoOpts := options.Client().ApplyURI("mongodb://0.0.0.0:27017/")
+	// client, err := mongo.Connect(context.Background(), mongoOpts)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 	// не забываем закрывать ресурсы
 	defer client.Disconnect(context.Background())
 	// проверка связи с БД
