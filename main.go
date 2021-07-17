@@ -13,18 +13,21 @@ import (
 )
 
 const (
-	workDB         = "data"
-	workCollection = "languages"
+	workDB         = "gonews"
+	workCollection = "posts"
 )
 
-type lang struct {
-	Id   int
-	Name string
+type Post struct {
+	ID      int    // номер записи
+	Title   string // заголовок публикации
+	Content string // содержание публикации
+	PubTime int64  // время публикации
+	Link    string // ссылка на источник
 }
 
 func main() {
 	pwd := os.Getenv("Cloud0pass")
-	connstr := fmt.Sprintf("mongodb+srv://sup:%s@cloud0.wspoq.mongodb.net/posts?retryWrites=true&w=majority", pwd)
+	connstr := fmt.Sprintf("mongodb+srv://sup:%s@cloud0.wspoq.mongodb.net/gonews?retryWrites=true&w=majority", pwd)
 
 	// подключение к СУБД MongoDB в облаке
 	clientOptions := options.Client().
@@ -50,23 +53,35 @@ func main() {
 		log.Fatal(err)
 	}
 
-	langs := []lang{{6, "C++"}, {7, "Java"}}
+	posts := []Post{{1, "Вышел Microsoft Linux",
+		"Как сообщают непроверенные источники, новая ОС будет бесплатной.",
+		time.Now().Unix(), "https://github.com/microsoft/CBL-Mariner"},
+		{2, "Инженеры Google не желают возвращаться в офисы",
+			"Инженеры Google не желают возвращаться в офисы, заявляя, что они не менее продуктивны на удалёнке.",
+			time.Now().Unix(), "https://habr.com/ru/news/t/568128/"}}
 
-	err = insertPack(client, langs)
+	err = insertPack(client, posts)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	langs, err = languages(client)
+	posts, err = languages(client)
 
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(langs)
+	fmt.Println(posts)
+
+	for _, p := range posts {
+		err := deletePost(client, p)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 }
 
-func insertPack(c *mongo.Client, docs []lang) error {
+func insertPack(c *mongo.Client, docs []Post) error {
 	coll := c.Database(workDB).Collection(workCollection)
 
 	for _, doc := range docs {
@@ -79,7 +94,7 @@ func insertPack(c *mongo.Client, docs []lang) error {
 	return nil
 }
 
-func languages(c *mongo.Client) ([]lang, error) {
+func languages(c *mongo.Client) ([]Post, error) {
 	coll := c.Database(workDB).Collection(workCollection)
 	ctx := context.Background()
 	filter := bson.D{}
@@ -89,14 +104,25 @@ func languages(c *mongo.Client) ([]lang, error) {
 	}
 	defer cur.Close(ctx)
 
-	var ls []lang
+	var ps []Post
 	for cur.Next(ctx) {
-		var l lang
+		var l Post
 		err = cur.Decode(&l)
 		if err != nil {
 			return nil, err
 		}
-		ls = append(ls, l)
+		ps = append(ps, l)
 	}
-	return ls, cur.Err()
+	return ps, cur.Err()
+}
+
+//DeletePost - удаляет пост по id
+func deletePost(c *mongo.Client, p Post) error {
+	coll := c.Database(workDB).Collection(workCollection)
+	filter := bson.D{{Key: "id", Value: p.ID}}
+	_, err := coll.DeleteOne(context.Background(), filter)
+	if err != nil {
+		return err
+	}
+	return nil
 }
